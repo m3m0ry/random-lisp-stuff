@@ -17,10 +17,10 @@
         (final-patterns '()))
     (loop for dna in dnas
           do (loop for i from 0 to (- (length dna) k)
-                   do (setf patterns (union  (neighbors (subseq dna i (+ i k)) d) patterns))))
+                   do (setf patterns (union (neighbors (subseq dna i (+ i k)) d) patterns :test 'equal))))
     (loop for pattern in patterns
           when (every 'plusp (mapcar (lambda (dna) (approximate-pattern-count pattern dna d)) dnas))
-             do (setf final-patterns (adjoin pattern final-patterns)))
+             do (setf final-patterns (adjoin pattern final-patterns :test 'equal)))
     final-patterns))
 
 
