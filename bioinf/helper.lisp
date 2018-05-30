@@ -5,12 +5,29 @@
            #:computing-frequencies #:skew #:minimum-skew #:hamming-distance
            #:approximate-pattern-matching #:approximate-pattern-count
            #:neighbors #:all-positions #:frequent-words-with-mismatch
-           #:minimum #:occurences #:motif-enumeration
+           #:minimum #:occurences #:motif-enumeration #:distance-pattern-strings
+           #:median-string
            ))
 
 (in-package #:bl)
 
 ;; Lecture 3
+
+(defun median-string (dnas k)
+    (loop for i from 0 to (1- (expt 4 k))
+          for new-pattern = (number-to-pattern i k)
+          for new-distance = (distance-pattern-strings new-pattern dnas)
+          with distance = (* k (length dnas)) and pattern = '()
+          when (< new-distance distance) do (setf pattern new-pattern) (setf distance new-distance)
+          finally (return pattern)))
+
+(defun distance-pattern-string (pattern dna)
+  (loop for i from 0 to (- (length dna) (length pattern))
+        minimizing (hamming-distance pattern (subseq dna i (+ i (length pattern))))))
+
+(defun distance-pattern-strings (pattern dnas)
+  (loop for dna in dnas
+        summing (distance-pattern-string pattern dna)))
 
 (defun motif-enumeration (dnas k d)
   (let ((patterns '())
