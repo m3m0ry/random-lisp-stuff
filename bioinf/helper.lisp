@@ -6,12 +6,27 @@
            #:approximate-pattern-matching #:approximate-pattern-count
            #:neighbors #:all-positions #:frequent-words-with-mismatch
            #:minimum #:occurences #:motif-enumeration #:distance-pattern-strings
-           #:median-string
+           #:median-string #:pr
            ))
 
 (in-package #:bl)
+(setf *print-case* :downcase)
+
+
 
 ;; Lecture 3
+
+(defun pr (consensus profile)
+  (loop for x across consensus
+        for i from 0 to (length consensus)
+        with prod = 1
+        do (case x
+             (#\A (setf prod (* prod (elt (first profile) i))))
+             (#\C (setf prod (* prod (elt (second profile) i))))
+             (#\G (setf prod (* prod (elt (third profile) i))))
+             (#\T (setf prod (* prod (elt (fourth profile) i)))))
+        finally (return prod)))
+
 
 (defun median-string (dnas k)
     (loop for i from 0 to (1- (expt 4 k))
