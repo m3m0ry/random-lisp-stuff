@@ -52,11 +52,13 @@
                     (return (list next))
                     )))
 
+
 (defun profile-matrix (motifs)
   (labels ((profile-it (base profile motifs)
              (if (= 0 (length (car motifs))) (return-from profile-it profile)
                  (profile-it base (cons (/ (reduce (lambda (x y) (+ x (if (equal base (char y 0)) 1 0)))
-                                                   motifs :initial-value 0) (length motifs)) profile)
+                                                   motifs :initial-value 1) (1+ (length motifs))) profile)
+                                                   ;initial value 1 and 1+ on length determines pseudocount
                              (mapcar (lambda (x) (subseq x 1)) motifs)))))
     (list (reverse (profile-it #\A '() motifs))
           (reverse (profile-it #\C '() motifs))
