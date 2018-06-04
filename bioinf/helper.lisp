@@ -6,7 +6,9 @@
            #:approximate-pattern-matching #:approximate-pattern-count
            #:neighbors #:all-positions #:frequent-words-with-mismatch
            #:minimum #:occurences #:motif-enumeration #:distance-pattern-strings
-           #:median-string #:pr
+           #:median-string #:pr #:profile-most-portable #:profile-matrix
+           #:greedy-motif-search #:find-consensus
+           #:transponate
            ))
 
 (in-package #:bl)
@@ -15,6 +17,60 @@
 
 
 ;; Lecture 3
+
+(defun greedy-motif-search (dnas k)
+  (loop for i from 0 to (- (length (car dnas)) k)
+        for motifs = (list (subseq (car dnas) i (+ i k)))
+        with best-motifs = (mapcar (lambda (x) (subseq x 0 k)) dnas)
+        do (loop for dna in (cdr dnas)
+                 do (push (profile-most-portable dna k (profile-matrix motifs)) motifs))
+        when (< (score motifs) (score best-motifs)) do (setf best-motifs motifs)
+        finally (return best-motifs)
+        ))
+
+(defun score (motifs)
+  (loop for motif in motifs
+        with consensus = (find-consensus motifs) and score = 0
+        do (incf score (hamming-distance consensus motif))
+        finally (return score) ))
+
+(defun find-consensus (motifs)
+  (coerce (loop for column in (transponate (profile-matrix motifs))
+                                 for m = (apply 'max column)
+                                 collect (cond
+                                           ((= m (first column)) #\A)
+                                           (( = m ( second column)) #\C)
+                                           (( = m ( third column)) #\G)
+                                           (( = m ( fourth column)) #\T)
+                                           )) 'string) )
+
+(defun transponate (motifs)
+  (loop for motif in motifs
+        collect (car motif) into next
+        collect (cdr motif) into m
+        finally (if (car m) (return (cons next (transponate m)))
+                    (return (list next))
+                    )))
+
+(defun profile-matrix (motifs)
+  (labels ((profile-it (base profile motifs)
+             (if (= 0 (length (car motifs))) (return-from profile-it profile)
+                 (profile-it base (cons (/ (reduce (lambda (x y) (+ x (if (equal base (char y 0)) 1 0)))
+                                                   motifs :initial-value 0) (length motifs)) profile)
+                             (mapcar (lambda (x) (subseq x 1)) motifs)))))
+    (list (reverse (profile-it #\A '() motifs))
+          (reverse (profile-it #\C '() motifs))
+          (reverse (profile-it #\G '() motifs))
+          (reverse (profile-it #\T '() motifs))
+          )))
+
+(defun profile-most-portable (dna k profile)
+  (loop for i from 0 to (- (length dna) k)
+        for new-consensus = (subseq dna i (+ i k))
+        for new-score = (pr new-consensus profile)
+        with best-consensus = (subseq dna 0 k) and best-score = 0
+        when (> new-score best-score) do (setf best-score new-score) (setf best-consensus new-consensus)
+        finally (return best-consensus)))
 
 (defun pr (consensus profile)
   (loop for x across consensus
