@@ -1,5 +1,5 @@
 (defpackage #:bl
-  (:use #:cl #:alexandria)
+  (:use :cl :alexandria)
   (:export #:test #:pattern-matching #:dna-complement #:pattern-count #:frequent-words
            #:clump-finding #:pattern-to-number #:number-to-pattern
            #:computing-frequencies #:skew #:minimum-skew #:hamming-distance
@@ -7,14 +7,73 @@
            #:neighbors #:all-positions #:frequent-words-with-mismatch
            #:minimum #:occurences #:motif-enumeration #:distance-pattern-strings
            #:median-string #:pr #:profile-most-portable #:profile-matrix
-           #:greedy-motif-search #:find-consensus
-           #:transponate
+           #:greedy-motif-search #:find-consensus #:score
+           #:transponate #:random-motif-search #:random-motif
+           #:repeated-random-motif-search #:probability-lecture-4
+           #:wierd-random #:gibbs-sampler #:repeated-random-gibbs-search
            ))
 
 (in-package #:bl)
 (setf *print-case* :downcase)
 
 
+;; Lecture 4
+
+(defun repeated-random-gibbs-search (dnas k N)
+  (loop for i to 200
+        for candidate = (gibbs-sampler dnas k N)
+        with best = nil
+        when (< (score candidate) (score best)) do (setf best candidate)
+        do (format t "Iteration:~d~tBest score:~d~&" i (score best))
+        finally (return best)))
+
+(defun gibbs-sampler (dnas k N)
+  (loop repeat N
+    for i = (random (length dnas))
+    for dna = (elt dnas i)
+    with motifs = (repeated-random-motif-search dnas k)
+    with best-motifs = motifs
+    for r = (profile-randomly dna k (profile-matrix (remove (elt motifs i) motifs :test 'equal)))
+    do (setf (elt motifs i) (subseq dna r (+ r k))) 
+    when (< (score motifs) (score best-motifs)) do (setf best-motifs motifs)
+    finally (return best-motifs)))
+
+(defun profile-randomly (dna k profile)
+  (wierd-random (loop for i from 0 to (- (length dna) k)
+                      for new-consensus = (subseq dna i (+ i k))
+                      for new-score = (pr new-consensus profile)
+                      collect new-score
+                      )))
+
+(defun wierd-random (probabilities)
+  (loop for p in (mapcar (lambda (x) (/ x (apply '+ probabilities))) probabilities)
+        for i = 0 then (1+ i) and sum = p then (+ sum p)
+        with r = (random 1.0)
+        when (> sum r) do (return i)))
+
+(defun probability-lecture-4 (k l times)
+  (- 1 (expt (/ (- l k) (1+ (- l k))) times)))
+
+(defun repeated-random-motif-search (dnas k)
+  (loop repeat 10
+        for candidate = (random-motif-search dnas k)
+        with best = nil
+        when (< (score candidate) (score best)) do (setf best candidate)
+        finally (return best)))
+
+(defun random-motif-search (dnas k)
+  (loop 
+        with motifs = (random-motif dnas k)
+        with best-motifs = motifs
+        do (setf motifs (loop for dna in dnas
+                            collect (profile-most-portable dna k (profile-matrix motifs))))
+        if (< (score motifs) (score best-motifs)) do (setf best-motifs motifs)
+        else do (return best-motifs)))
+
+(defun random-motif (dnas k)
+  (loop for dna in dnas
+        for r = (random (- (length dna) k))
+        collect (subseq dna r (+ r k))))
 
 ;; Lecture 3
 
@@ -25,14 +84,14 @@
         do (loop for dna in (cdr dnas)
                  do (push (profile-most-portable dna k (profile-matrix motifs)) motifs))
         when (< (score motifs) (score best-motifs)) do (setf best-motifs motifs)
-        finally (return best-motifs)
-        ))
+        finally (return best-motifs)))
 
 (defun score (motifs)
-  (loop for motif in motifs
-        with consensus = (find-consensus motifs) and score = 0
-        do (incf score (hamming-distance consensus motif))
-        finally (return score) ))
+  (if (not motifs) 999999999999999999
+      (loop for motif in motifs
+            with consensus = (find-consensus motifs) and score = 0
+            do (incf score (hamming-distance consensus motif))
+            finally (return score) )))
 
 (defun find-consensus (motifs)
   (coerce (loop for column in (transponate (profile-matrix motifs))
