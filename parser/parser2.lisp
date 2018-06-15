@@ -2,33 +2,35 @@
 
 (defpackage :calc-grammar
   (:use :cl :esrap)
-  (:export #:calc #:lexer #:cepl #:float #:expression)
-  )
+  (:export #:lexer #:epel #:expression))
 
 (in-package :calc-grammar)
 
-(defun cepl (s); todo better name
-  (eval (parse 'calc (lexer s))))
+(defun epel (s)
+  (eval (parse 'expression (lexer s))))
 
 (defun lexer (s)
   (remove-if-not (lambda (c) (or (alphanumericp c) (find c ".*/+-()^"))) s))
 
-;;; Utility rules.
+(defrule expression (or add-sub term))
+(defrule add-sub (and expression (or "+" "-") term)
+  (:destructure (a op b)
+    (list (intern op) a b)))
 
-(defrule expression (or (and expression (or "+" "-") term) term))
-(defrule term (or (and term (or "*" "/") factor) factor))
-(defrule factor (or (and "(" expression ")") (and "-" factor) number))
+(defrule term (or mul-div factor))
+(defrule mul-div (and term (or "*" "/") factor)
+  (:destructure (a op b)
+    (list (intern op) a b)))
 
-;(defrule expression (or (and expression operator number) (and number operator number))
-;  (:lambda (e)
-;   (list (second e) (first e) (third e))))
-
-;(defrule operator (or "*" "/" "+" "-" "^")
-;  (:lambda (op)
-;   (if (string-equal op "^") 'expt
-;       (intern op))))
-
-(defrule alphanumeric (alphanumericp character))
+(defrule factor (or brackets negative number))
+(defrule brackets (and "(" expression ")")
+  (:destructure (b1 e b2)
+    (declare (ignore b1 b2))
+    e))
+(defrule negative (and "-" factor)
+  (:destructure (minus f)
+    (declare (ignore minus))
+    (- f)))
 
 (defrule number (or float integer))
 
@@ -42,11 +44,3 @@
 (defrule integer (and (+ nums))
   (:lambda (list)
     (parse-integer (text list) :radix 10)))
-
-(defrule symbol (not-integer (+ alphanumeric))
-  (:lambda (list)
-    (intern (text list))))
-
-(defun not-integer (string)
-  (when (find-if-not #'digit-char-p string)
-    t))
