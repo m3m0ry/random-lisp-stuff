@@ -1,8 +1,8 @@
-(defpackage :my-server
+(defpackage :web
   (:use :cl :hunchentoot :cl-who :calc)
   (:export #:start-server #:stop-server #:restart-server))
 
-(in-package :my-server)
+(in-package :web)
 
 (setf *print-case* :downcase)
 (setf (html-mode) :html5)
