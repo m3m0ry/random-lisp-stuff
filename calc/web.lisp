@@ -1,6 +1,8 @@
 (defpackage :web
-  (:use :cl :hunchentoot :cl-who :calc)
+  (:use :cl :hunchentoot :cl-who :cl-slug :calc)
   (:export #:start-server #:stop-server #:restart-server))
+
+; cl-slug Use slugify or asciify
 
 (in-package :web)
 
@@ -34,6 +36,10 @@
              (:title ,title)
             (:body
              ,@body)))))
+
+(define-easy-handler (main :uri "/") ()
+  (standard-page (:title "hr0m's wEbSiTe")
+    (:a :href "/calc" "Calculator!")))
 
 (define-easy-handler (calc :uri "/calc") (query)
   (standard-page (:title "hr0m's wEbSiTe")

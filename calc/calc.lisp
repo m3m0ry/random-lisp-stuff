@@ -1,6 +1,6 @@
 (defpackage :calc
   (:use :cl :esrap)
-  (:export #:lexer #:epel #:expression #:repl))
+  (:export #:lexer #:epel #:expression #:repl #:print-grammar))
 
 (in-package :calc)
 
@@ -9,7 +9,7 @@
   (loop
     (handler-case
         (progn
-             (format t (if (stringp prompt) prompt (funcall prompt)))
+          (format t (if (stringp prompt) prompt (funcall prompt)))
           (format t (if (stringp form) form (funcall form))
                   (funcall transformer (read-line))))
       ;;In case of error, do this :
@@ -26,7 +26,8 @@
                            (form-generator "Out [~d]: ~~a")))
 
 (defun epel (s)
-  (eval (parse 'expression (lexer s))))
+  (unless (= (length (lexer s)) 0)
+  (eval (parse 'expression (lexer s)))))
 
 (defun lexer (s)
   (remove-if-not (lambda (c) (or (alphanumericp c) (find c ".*/+-()^"))) s))
@@ -69,5 +70,8 @@
 (defrule integer (and (+ nums))
   (:lambda (list)
     (parse-integer (text list) :radix 10)))
+
+(defun print-grammar ()
+ (describe-grammar 'expression))
 
 ;(defrule function )
