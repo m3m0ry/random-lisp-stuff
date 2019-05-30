@@ -1,5 +1,5 @@
 (defpackage :calc
-  (:use :cl :esrap)
+  (:use #:cl #:esrap)
   (:export #:lexer #:epel #:expression #:repl #:print-grammar))
 
 (in-package :calc)
